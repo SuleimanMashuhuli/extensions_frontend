@@ -22,7 +22,7 @@ export default function ExtTable ({employees, onEdit}) {
             <tbody className="bg-white">
               {employees.length > 0 ? (
                 employees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50 transition-colors duration-150 text-base font-medium text-balck border-2 border-black">
+                  <tr key={employee.id} className="hover:bg-gray-50 transition-colors duration-150 text-base font-medium text-black border-2 border-black">
                     <td className="px-6 py-4 border-2 border-black">
                       {employee.name}
                     </td>
@@ -34,7 +34,7 @@ export default function ExtTable ({employees, onEdit}) {
                     </td>
                     <td className="px-6 py-4 border-2 border-black">
                       <div className="flex items-center justify-between">
-                        <span>{employee.mobile}</span>
+                        <span>{employee.mobile_number}</span>
                         <button
                           onClick={() => onEdit(employee.id)}
                           className="text-red-600 hover:text-blue-800 font-medium transition-colors duration-150 whitespace-nowrap"
@@ -47,8 +47,8 @@ export default function ExtTable ({employees, onEdit}) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500 border-2 border-black">
-                    No employees found matching your search.
+                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500 border-2 border-black">
+                    No employees found
                   </td>
                 </tr>
               )}

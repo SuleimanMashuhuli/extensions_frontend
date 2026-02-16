@@ -1,0 +1,13 @@
+services:
+  extensions-frontend:
+    container_name: extensions-frontend
+    image: extensions:v1
+    restart: always
+    build:
+      context: .
+      dockerfile: DockerfileProd
+    ports:
+      - "5230:80"
+    environment:
+      - NODE_ENV=production
+   

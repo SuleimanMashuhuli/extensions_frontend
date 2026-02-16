@@ -6,7 +6,7 @@ export const EmployeeForm = ({employee, onClose, onSave}) => {
     name: employee?.name || '',
     department: employee?.department || '',
     extension: employee?.extension || '',
-    mobile: employee?.mobile || ''
+    mobile_number: employee?.mobile_number || ''
   });
 
   const handleChange = (e) => {
@@ -50,8 +50,8 @@ export const EmployeeForm = ({employee, onClose, onSave}) => {
 
             <Input
               label="Mobile Number"
-              name="mobile"
-              value={formData.mobile}
+              name="mobile_number"
+              value={formData.mobile_number}
               onChange={handleChange}
               required
             />

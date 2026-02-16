@@ -1,32 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import ExtTable from './Table/ExtTable';
 import { EmployeeModal } from './Modal/EmpModal';
+import EXT_ENDPOINTS from '../api';
 
 export default function EmployeePage () {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  
-  const [employees, setEmployees] = useState([
-    { id: 1, name: 'John Doe', department: 'Engineering', extension: '1234', mobile: '+1 234-567-8901' },
-    { id: 2, name: 'Jane Smith', department: 'Marketing', extension: '5678', mobile: '+1 234-567-8902' },
-    { id: 3, name: 'Bob Johnson', department: 'Sales', extension: '9012', mobile: '+1 234-567-8903' },
-    { id: 4, name: 'Alice Brown', department: 'HR', extension: '3456', mobile: '+1 234-567-8904' },
-    { id: 5, name: 'Charlie Wilson', department: 'Engineering', extension: '7890', mobile: '+1 234-567-8905' },
-    { id: 1, name: 'John Doe', department: 'Engineering', extension: '1234', mobile: '+1 234-567-8901' },
-    { id: 2, name: 'Jane Smith', department: 'Marketing', extension: '5678', mobile: '+1 234-567-8902' },
-    { id: 3, name: 'Bob Johnson', department: 'Sales', extension: '9012', mobile: '+1 234-567-8903' },
-    { id: 4, name: 'Alice Brown', department: 'HR', extension: '3456', mobile: '+1 234-567-8904' },
-    { id: 5, name: 'Charlie Wilson', department: 'Engineering', extension: '7890', mobile: '+1 234-567-8905' },
-     { id: 1, name: 'John Doe', department: 'Engineering', extension: '1234', mobile: '+1 234-567-8901' },
-    { id: 2, name: 'Jane Smith', department: 'Marketing', extension: '5678', mobile: '+1 234-567-8902' },
-    { id: 3, name: 'Bob Johnson', department: 'Sales', extension: '9012', mobile: '+1 234-567-8903' },
-    { id: 4, name: 'Alice Brown', department: 'HR', extension: '3456', mobile: '+1 234-567-8904' },
-    { id: 5, name: 'Charlie Wilson', department: 'Engineering', extension: '7890', mobile: '+1 234-567-8905' },
-  ]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-const handleSearch = (query) => {
+  useEffect(() => {
+    fetchEmployees();
+  }, [searchQuery]);
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = searchQuery 
+        ? `${EXT_ENDPOINTS.GET_ALL_EXT}?search=${encodeURIComponent(searchQuery)}`
+        : EXT_ENDPOINTS.GET_ALL_EXT;
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setEmployees(data);
+    } catch (err) {
+      setError(err.message);
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (query) => {
     setSearchQuery(query);
   };
 
@@ -36,7 +51,9 @@ const handleSearch = (query) => {
   };
 
   const handleEdit = (employeeId) => {
-    const employeeToEdit = employees.find(emp => emp.id === employeeId);
+    const employeeToEdit = Array.isArray(employees) 
+      ? employees.find(emp => emp?.id === employeeId)
+      : null;
     setSelectedEmployee(employeeToEdit);
     setIsModalOpen(true);
   };
@@ -46,38 +63,81 @@ const handleSearch = (query) => {
     setSelectedEmployee(null);
   };
 
-  const handleSaveEmployee = (employeeData) => {
-    if (selectedEmployee) {
-      setEmployees(employees.map(emp => 
-        emp.id === selectedEmployee.id ? { ...emp, ...employeeData } : emp
-      ));
-    } else {
-      const newEmployee = {
-        ...employeeData,
-        id: employees.length + 1
-      };
-      setEmployees([...employees, newEmployee]);
+  const handleSaveEmployee = async (employeeData) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      if (selectedEmployee) {
+        const response = await fetch(EXT_ENDPOINTS.UPDATE_EXT(selectedEmployee.id), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(employeeData),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } else {
+        const response = await fetch(EXT_ENDPOINTS.CREATE_EXT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(employeeData),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      }
+      await fetchEmployees();
+      handleCloseModal();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    handleCloseModal();
   };
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.extension.includes(searchQuery) ||
-    emp.mobile.includes(searchQuery)
-  );
+  const filteredEmployees = Array.isArray(employees) && employees.length > 0
+    ? employees.filter(emp => 
+        emp?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp?.department?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const employeeCount = Array.isArray(employees) ? employees.length : 0;
+  const filteredCount = filteredEmployees.length;
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <Header onSearch={handleSearch} onAdd={handleAddItem} />
       
       <main className="container mx-auto px-8 py-6">
         <div className="bg-white overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Loading employees...</p>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-600">
+              <p className="font-semibold">Error loading employees</p>
+              <p className="text-sm mt-1">{error}</p>
+              <button 
+                onClick={fetchEmployees}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
             <ExtTable
-                employees={filteredEmployees}
-                onEdit={handleEdit}
+              employees={employees}
+              onEdit={handleEdit}
             />
+          )}
         </div>
 
         {isModalOpen && (
@@ -88,10 +148,12 @@ const handleSearch = (query) => {
           />
         )}
 
-        <div className="mt-4 text-sm text-gray-600">
-          Showing {filteredEmployees.length} of {employees.length} employees
-        </div>
+        {!loading && !error && (
+          <div className="mt-4 text-sm text-gray-600">
+            Showing {filteredCount} of {employeeCount} employees
+          </div>
+        )}
       </main>
     </div>
   );
-};
+}
